@@ -30,7 +30,7 @@ async def get_nutrition(request: Request):
         )
 
     # Effets de la maladie
-    prompt_effets = f"Tu es un expert médical. Décris les effets de la maladie {maladie} sur le corps humain."
+    prompt_effets = f"Tu es un expert médical. Décris les effets de la maladie {maladie} sur le corps humain en 3 phrases."
     try:
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
@@ -43,8 +43,54 @@ async def get_nutrition(request: Request):
     # Menu nutritionnel
     prompt_menu = f"""Tu es un expert en nutrition.
     Le patient souffre de {maladie}.
-    Génère un menu nutritionnel adapté avec des aliments locaux."""
+    Génère un menu nutritionnel adapté avec des aliments locaux en un seul paragraphe."""
     
+    # Les aliments et fruits sités dans le menu nutritionnel
+    # =========================
+    # Extraction des aliments
+    # =========================
+    prompt_aliments = f"""
+    À partir du texte suivant, liste uniquement les aliments (hors fruits) séparés par des virgules.
+
+    Texte : {menu_nutritionnel}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt_aliments}]
+        )
+        aliments_text = response.choices[0].message.content.strip()
+
+        # transformer en liste
+        aliments = [a.strip() for a in aliments_text.split(",") if a.strip()]
+    except Exception as e:
+        aliments = []
+
+
+    # =========================
+    # Extraction des fruits
+    # =========================
+    prompt_fruits = f"""
+    À partir du texte suivant, liste uniquement les fruits séparés par des virgules.
+
+    Texte : {menu_nutritionnel}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt_fruits}]
+        )
+        fruits_text = response.choices[0].message.content.strip()
+
+        # transformer en liste
+        fruits = [f.strip() for f in fruits_text.split(",") if f.strip()]
+    except Exception as e:
+        fruits = []
+
+    
+
     try:
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
@@ -57,5 +103,7 @@ async def get_nutrition(request: Request):
     return {
         "maladie": maladie,
         "effets_maladie": effets_maladie,
-        "menu_nutritionnel": menu_nutritionnel
+        "menu_nutritionnel": menu_nutritionnel,
+        "aliments": aliments,
+        "fruits": fruits
     }
